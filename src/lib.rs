@@ -38,7 +38,12 @@ pub enum CardType {
     Treachery,
     Quest,
     Rules,
-    Nightmare
+    Nightmare,
+    Treasure,
+    Campaign,
+    ObjectiveAlly,
+    ShipEnemy,
+    Contract,
 }
 
 impl Default for CardType {
@@ -163,24 +168,31 @@ impl CardSet {
         for (n, card) in self.cards.iter().enumerate() {
             for property in &card.properties {
                 if property.name == "Type" {
-                    let card_type = match property.value.as_str() {
-                        "Hero" => CardType::Hero,
-                        "Attachment" => CardType::Attachment,
-                        "Side Quest" => CardType::SideQuest,
-                        "Event" => CardType::Event,
-                        "Ally" => CardType::Ally,
-                        "Objective" => CardType::Objective,
-                        "Enemy" => CardType::Enemy,
-                        "Location" => CardType::Location,
-                        "Treachery" => CardType::Treachery,
-                        "Quest" => CardType::Quest,
-                        "Rules" => CardType::Rules,
-                        "Nightmare" => CardType::Nightmare,
-                        val => panic!{"{} is card type not known", val},
-                    };
-                    v.entry(card_type)
-                        .and_modify(|v| v.set(n, true))
-                        .or_insert_with(|| {let mut m = bitvec![0; cards_number]; m.set(n, true); m});
+                    if property.value.as_str() != "Internal" {
+                        let card_type = match property.value.as_str() {
+                            "Hero" => CardType::Hero,
+                            "Attachment" => CardType::Attachment,
+                            "Side Quest" => CardType::SideQuest,
+                            "Event" => CardType::Event,
+                            "Ally" => CardType::Ally,
+                            "Objective" => CardType::Objective,
+                            "Enemy" => CardType::Enemy,
+                            "Location" => CardType::Location,
+                            "Treachery" => CardType::Treachery,
+                            "Quest" => CardType::Quest,
+                            "Rules" => CardType::Rules,
+                            "Nightmare" => CardType::Nightmare,
+                            "Treasure" => CardType::Treasure,
+                            "Campaign" => CardType::Campaign,
+                            "Objective Ally" => CardType::ObjectiveAlly,
+                            "Ship-Enemy" => CardType::ShipEnemy,
+                            "Contract" => CardType::Contract,
+                            val => panic!{"{} is card type not known", val},
+                        };
+                        v.entry(card_type)
+                            .and_modify(|v| v.set(n, true))
+                            .or_insert_with(|| {let mut m = bitvec![0; cards_number]; m.set(n, true); m});
+                        }
                 }
             }
         }
