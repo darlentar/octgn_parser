@@ -1,4 +1,4 @@
-use serde::{Deserialize};
+use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -6,13 +6,13 @@ use serde_xml_rs::{from_str};
 use bitvec::vec::{BitVec};
 use bitvec::bitvec;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UProperty {
     pub name: String,
     pub value: String
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UCard {
     pub id: String,
     pub name: String,
