@@ -1,17 +1,18 @@
 use serde::{Deserialize};
 
 use std::collections::HashMap;
+use std::str::FromStr;
 use serde_xml_rs::{from_str};
 use bitvec::vec::{BitVec};
 use bitvec::bitvec;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct UProperty {
     pub name: String,
     pub value: String
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct UCard {
     pub id: String,
     pub name: String,
@@ -38,6 +39,10 @@ pub enum CardType {
     Quest,
     Rules,
     Nightmare
+}
+
+impl Default for CardType {
+    fn default() -> Self {CardType::Attachment}
 }
 
 impl UCards {
@@ -117,6 +122,112 @@ pub struct USet {
     pub name: String,
 
     pub cards: UCards,
+}
+
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
+pub enum Sphere {
+    Spirit,
+    Lore,
+    Leadership,
+    Tactics,
+}
+
+impl FromStr for Sphere {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Spirit" => Ok(Sphere::Spirit),
+            "Lore" => Ok(Sphere::Lore),
+            "Leadership" => Ok(Sphere::Leadership),
+            "Tactics" => Ok(Sphere::Tactics),
+            x => Result::Err(format!("{} is not a shpere", x)),
+        }
+    }
+}
+
+impl Default for Sphere {
+    fn default() -> Self {Sphere::Spirit}
+}
+
+#[derive(Default)]
+pub struct HeroCard {
+    pub card_number: u8,
+    pub quantity: u8,
+    pub card_type: CardType,
+    pub sphere: Sphere,
+    pub traits: Vec<String>,
+    pub cost: u8,
+    pub willpower: u8,
+    pub attack: u8,
+    pub defense: u8,
+    pub health: u8,
+    pub text: String,
+}
+
+impl HeroCard {
+    fn from_ucard(card: &UCard) -> Result<Self, String> {
+        let mut hero_card = HeroCard::default();
+        let mut setted = bitvec![0; 11];
+        for property in &card.properties {
+            match property.name.as_str() {
+                "Card Number" => {
+                    setted.set(0, true);
+                    hero_card.card_number = u8::from_str(property.value.as_str()).unwrap()
+                },
+                "Quantity" => {
+                    setted.set(1, true);
+                    hero_card.quantity = u8::from_str(property.value.as_str()).unwrap()
+                },
+                "Type" => {
+                    setted.set(2, true);
+                    hero_card.card_type = CardType::Hero
+                },
+                "Traits" => {
+                    setted.set(3, true);
+                    let traits = property.value.split(' ')
+                                    .into_iter()
+                                    .map(|x| String::from(&x[..x.len()-1]))
+                                    .collect();
+                    hero_card.traits = traits;
+                },
+                "Cost" => {
+                    setted.set(4, true);
+                    hero_card.cost = u8::from_str(property.value.as_str()).unwrap()
+                },
+                "Willpower" => {
+                    setted.set(5, true);
+                    hero_card.willpower = u8::from_str(property.value.as_str()).unwrap()
+                },
+                "Attack" => {
+                    setted.set(6, true);
+                    hero_card.attack = u8::from_str(property.value.as_str()).unwrap()
+                },
+                "Defense" => {
+                    setted.set(7, true);
+                    hero_card.defense = u8::from_str(property.value.as_str()).unwrap()
+                },
+                "Health" => {
+                    setted.set(8, true);
+                    hero_card.health = u8::from_str(property.value.as_str()).unwrap()
+                },
+                "Sphere" => {
+                    setted.set(9, true);
+                    hero_card.sphere = Sphere::from_str(property.value.as_str()).unwrap()
+                },
+                "Text" => {
+                    setted.set(10, true);
+                    hero_card.text = String::from(&property.value)
+                },
+                x => panic!("Cannot parse {} for hero card.", x)
+            }
+        }
+        if setted.all() {
+            Ok(hero_card)
+        } else {
+            Err(String::from(format!("Error in card hero parsing")))
+        }
+    }
 }
 
 pub fn parse_octgn_set(s: &str) -> USet {
@@ -212,5 +323,30 @@ mod tests {
         let cards = &parse_octgn_set(default()).cards;
         let selectors = cards.select_by_type();
         assert_eq!(selectors[&CardType::Attachment], bitvec![0, 1, 0])
+    }
+
+    #[test]
+    fn hero_card_from_ucard() {
+        let cards = &parse_octgn_set(default()).cards;
+        let hero_card = HeroCard::from_ucard(&cards.card[0]).unwrap();
+        assert_eq!(hero_card.card_number, 81);
+        assert_eq!(hero_card.quantity, 1);
+        assert_eq!(hero_card.card_type, CardType::Hero);
+        assert_eq!(hero_card.sphere, Sphere::Spirit);
+        assert_eq!(hero_card.traits, vec!["Rohan", "Warrior"]);
+        assert_eq!(hero_card.cost, 9);
+        assert_eq!(hero_card.willpower, 1);
+        assert_eq!(hero_card.attack, 2);
+        assert_eq!(hero_card.defense, 3);
+        assert_eq!(hero_card.health, 3);
+        assert!(hero_card.text.starts_with("Response: After Fastred def"));
+    }
+
+    #[test]
+    fn hero_card_from_ucard_without_willpower() {
+        let cards = &parse_octgn_set(default()).cards;
+        let mut hero_card_without_willpower = cards.card[0].clone();
+        hero_card_without_willpower.properties.remove(0);
+        assert!(HeroCard::from_ucard(&cards.card[1]).is_err());
     }
 }
