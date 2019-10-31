@@ -1,0 +1,4 @@
+This project is to parse OCTGN files and construct multiple indexes to
+make query on those cards.
+
+Currenty WIP.
