@@ -105,6 +105,10 @@ pub struct CardSet {
 }
 
 impl CardSet {
+    fn append(&mut self, other: &mut Self) {
+        self.cards.append(&mut other.cards);
+    }
+
     fn from_uset(set: &USet) -> Self {
         let mut cards = Vec::with_capacity(set.cards.card.len());
         for card in &set.cards.card {
@@ -374,5 +378,13 @@ mod tests {
     fn card_set_from_uset() {
         let card_set = &parse_octgn_set(default());
         assert_eq!(card_set.cards[0].properties[11].value, "The Black Serpent");
+    }
+
+    #[test]
+    fn add_card_set() {
+        let mut card_set1 = parse_octgn_set(default());
+        let mut card_set2 = parse_octgn_set(default());
+        card_set1.append(&mut card_set2);
+        assert_eq!(card_set1.cards.len(), 6);
     }
 }
