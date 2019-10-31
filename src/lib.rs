@@ -38,6 +38,7 @@ pub enum CardType {
     Treachery,
     Quest,
     Rules,
+    Nightmare
 }
 
 impl UCards {
@@ -78,7 +79,8 @@ impl UCards {
                         "Treachery" => CardType::Treachery,
                         "Quest" => CardType::Quest,
                         "Rules" => CardType::Rules,
-                        val => panic!{"{} is not known", val},
+                        "Nightmare" => CardType::Nightmare,
+                        val => panic!{"{} is card type not known", val},
                     };
                     v.entry(card_type)
                         .and_modify(|v| v.set(n, true))
