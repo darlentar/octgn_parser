@@ -105,7 +105,11 @@ pub struct CardSet {
 }
 
 impl CardSet {
-    fn append(&mut self, other: &mut Self) {
+    pub fn empty() -> Self {
+        CardSet{cards:vec!{}}
+    }
+
+    pub fn append(&mut self, other: &mut Self) {
         self.cards.append(&mut other.cards);
     }
 
