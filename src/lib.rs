@@ -48,7 +48,22 @@ impl UCards {
         for (n, card) in self.card.iter().enumerate() {
             for name in card.name.split(' ') {
                 let name = name.to_lowercase().replace("ú", "u");
-                let name = name.to_lowercase().replace("’", " ");
+                let name = name.to_lowercase().replace("’", "'");
+                let name = name.to_lowercase().replace("í", "i");
+                let name = name.to_lowercase().replace("û", "u");
+                let name = name.to_lowercase().replace("î", "i");
+                let name = name.to_lowercase().replace("ó", "o");
+                let name = name.to_lowercase().replace("é", "e");
+                let name = name.to_lowercase().replace("â", "a");
+                let name = name.to_lowercase().replace("“", "");
+                let name = name.to_lowercase().replace("ë", "e");
+                let name = name.to_lowercase().replace("”", "");
+                let name = name.to_lowercase().replace("á", "a");
+                let name = name.to_lowercase().replace("\u{a0}", "eo");
+                let name = name.to_lowercase().replace("ä", "a");
+                let name = name.to_lowercase().replace("\u{301}", "");
+                let name = name.to_lowercase().replace("ö", "o");
+                let name = name.to_lowercase().replace("\u{302}", "u");
                 let i = name.len();
                 for j in 0..i {
                     let card_name_start = name[0..i-j].to_string();
