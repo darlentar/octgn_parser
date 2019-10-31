@@ -1,5 +1,4 @@
 use serde::{Deserialize};
-extern crate serde_xml_rs;
 
 use std::collections::HashMap;
 use serde_xml_rs::{from_str};
@@ -82,7 +81,7 @@ impl UCards {
         for (n, card) in self.card.iter().enumerate() {
             for property in &card.properties {
                 if property.name == "Type" {
-                  let card_type = match property.value.as_str() {
+                    let card_type = match property.value.as_str() {
                         "Hero" => CardType::Hero,
                         "Attachment" => CardType::Attachment,
                         "Side Quest" => CardType::SideQuest,
