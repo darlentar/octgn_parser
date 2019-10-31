@@ -25,6 +25,21 @@ pub struct UCards {
     pub card: Vec<UCard>,
 }
 
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
+pub enum CardType {
+    Attachment,
+    Hero,
+    SideQuest,
+    Event,
+    Ally,
+    Objective,
+    Enemy,
+    Location,
+    Treachery,
+    Quest,
+    Rules,
+}
+
 impl UCards {
     pub fn select_by_name(&self) -> HashMap<String, BitVec> {
         let mut v : HashMap<String, BitVec> = HashMap::new();
@@ -43,6 +58,35 @@ impl UCards {
             }
         }
     v
+    }
+
+    pub fn select_by_type(&self) -> HashMap<CardType, BitVec> {
+        let mut v : HashMap<CardType, BitVec> = HashMap::new();
+        let cards_number = self.card.len();
+        for (n, card) in self.card.iter().enumerate() {
+            for property in &card.properties {
+                if property.name == "Type" {
+                  let card_type = match property.value.as_str() {
+                        "Hero" => CardType::Hero,
+                        "Attachment" => CardType::Attachment,
+                        "Side Quest" => CardType::SideQuest,
+                        "Event" => CardType::Event,
+                        "Ally" => CardType::Ally,
+                        "Objective" => CardType::Objective,
+                        "Enemy" => CardType::Enemy,
+                        "Location" => CardType::Location,
+                        "Treachery" => CardType::Treachery,
+                        "Quest" => CardType::Quest,
+                        "Rules" => CardType::Rules,
+                        val => panic!{"{} is not known", val},
+                    };
+                    v.entry(card_type)
+                        .and_modify(|v| v.set(n, true))
+                        .or_insert_with(|| {let mut m = bitvec![0; cards_number]; m.set(n, true); m});
+                }
+            }
+        }
+        v
     }
 }
 
@@ -138,5 +182,19 @@ mod tests {
         let cards = &parse_octgn_set(default()).cards;
         let selectors = cards.select_by_name();
         assert_eq!(selectors["wes"], bitvec![0, 0, 1])
+    }
+
+    #[test]
+    fn set_select_by_type_hero() {
+        let cards = &parse_octgn_set(default()).cards;
+        let selectors = cards.select_by_type();
+        assert_eq!(selectors[&CardType::Hero], bitvec![1, 0, 0])
+    }
+
+    #[test]
+    fn set_select_by_type_attachment() {
+        let cards = &parse_octgn_set(default()).cards;
+        let selectors = cards.select_by_type();
+        assert_eq!(selectors[&CardType::Attachment], bitvec![0, 1, 0])
     }
 }
