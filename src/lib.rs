@@ -3,8 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 use serde_xml_rs::{from_str};
-use bitvec::vec::{BitVec};
-use bitvec::bitvec;
+use bitvec::prelude::*;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UProperty {
@@ -129,7 +128,15 @@ impl CardSet {
     }
 
     pub fn select_by_name(&self) -> HashMap<String, BitVec> {
-        let mut v : HashMap<String, BitVec> = HashMap::new();
+        return self._select_by_name()
+    }
+
+    pub fn select_by_name_le(&self) -> HashMap<String, BitVec<LittleEndian, u8>> {
+        return self._select_by_name();
+    }
+
+    fn _select_by_name<C>(&self) -> HashMap<String, BitVec<C, u8>> where C : Cursor {
+        let mut v : HashMap<String, BitVec<C, _>> = HashMap::new();
         let cards_number = self.cards.len();
         for (n, card) in self.cards.iter().enumerate() {
             for name in card.name.split(' ') {
@@ -155,7 +162,7 @@ impl CardSet {
                     let card_name_start = name[0..i-j].to_string();
                     v.entry(card_name_start)
                         .and_modify(|v| v.set(n, true))
-                        .or_insert_with(|| {let mut m = bitvec![0; cards_number]; m.set(n, true); m});
+                        .or_insert_with(|| {let mut m = bitvec![C, u8; 0; cards_number]; m.set(n, true); m});
                 }
             }
         }
@@ -163,7 +170,15 @@ impl CardSet {
     }
 
     pub fn select_by_type(&self) -> HashMap<CardType, BitVec> {
-        let mut v : HashMap<CardType, BitVec> = HashMap::new();
+        return self._select_by_type()
+    }
+
+    pub fn select_by_type_le(&self) -> HashMap<CardType, BitVec<LittleEndian, u8>> {
+        return self._select_by_type();
+    }
+
+    fn _select_by_type<C>(&self) -> HashMap<CardType, BitVec<C, u8>> where C : Cursor {
+        let mut v : HashMap<CardType, BitVec<C, u8>> = HashMap::new();
         let cards_number = self.cards.len();
         for (n, card) in self.cards.iter().enumerate() {
             for property in &card.properties {
@@ -191,7 +206,7 @@ impl CardSet {
                         };
                         v.entry(card_type)
                             .and_modify(|v| v.set(n, true))
-                            .or_insert_with(|| {let mut m = bitvec![0; cards_number]; m.set(n, true); m});
+                            .or_insert_with(|| {let mut m = bitvec![C, u8; 0; cards_number]; m.set(n, true); m});
                         }
                 }
             }
