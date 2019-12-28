@@ -5,17 +5,17 @@ use serde_xml_rs::{from_str};
 use bitvec::prelude::*;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct UProperty {
+pub struct OCTGNProperty {
     pub name: String,
     pub value: String
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct UCard {
+pub struct OCTGNCard {
     pub id: String,
     pub name: String,
     #[serde(rename = "property", default)]
-    pub properties: Vec<UProperty>
+    pub properties: Vec<OCTGNProperty>
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
@@ -46,11 +46,11 @@ impl Default for CardType {
 #[derive(Debug, Deserialize)]
 struct CardsWrapper {
     #[serde(rename= "card", default)]
-    cards: Vec<UCard>
+    cards: Vec<OCTGNCard>
 }
 
 impl CardsWrapper {
-    fn deserialize<'de, D>(deserializer:D ) -> Result<Vec<UCard>, D::Error>
+    fn deserialize<'de, D>(deserializer:D ) -> Result<Vec<OCTGNCard>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -60,7 +60,7 @@ impl CardsWrapper {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct USet {
+pub struct OCTGNSet {
     pub version: String,
     #[serde(rename = "gameVersion", default)]
     pub game_version: String,
@@ -70,7 +70,7 @@ pub struct USet {
     pub name: String,
 
     #[serde(with = "CardsWrapper")]
-    pub cards: Vec<UCard>
+    pub cards: Vec<OCTGNCard>
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
@@ -116,7 +116,7 @@ pub struct HeroCard {
 }
 
 impl HeroCard {
-    fn from_ucard(card: &UCard) -> Result<Self, String> {
+    fn from_ucard(card: &OCTGNCard) -> Result<Self, String> {
         let mut hero_card = HeroCard::default();
         let mut setted = bitvec![0; 11];
         for property in &card.properties {
@@ -185,7 +185,7 @@ impl HeroCard {
     }
 }
 
-pub fn parse_octgn_set(s: &str) -> USet {
+pub fn parse_octgn_set(s: &str) -> OCTGNSet {
     let i = s.find('\n').unwrap();
     from_str(s.get(i..).unwrap()).unwrap()
 }
