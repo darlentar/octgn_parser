@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use std::str::FromStr;
 use serde_xml_rs::{from_str};
@@ -16,11 +16,6 @@ pub struct UCard {
     pub name: String,
     #[serde(rename = "property", default)]
     pub properties: Vec<UProperty>
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UCards {
-    pub card: Vec<UCard>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
@@ -49,6 +44,22 @@ impl Default for CardType {
 }
 
 #[derive(Debug, Deserialize)]
+struct CardsWrapper {
+    #[serde(rename= "card", default)]
+    cards: Vec<UCard>
+}
+
+impl CardsWrapper {
+    fn deserialize<'de, D>(deserializer:D ) -> Result<Vec<UCard>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wrapper = <Self as Deserialize>::deserialize(deserializer)?;
+        Ok(wrapper.cards)
+    }
+}
+
+#[derive(Debug, Deserialize)]
 pub struct USet {
     pub version: String,
     #[serde(rename = "gameVersion", default)]
@@ -58,7 +69,8 @@ pub struct USet {
     pub id: String,
     pub name: String,
 
-    pub cards: UCards,
+    #[serde(with = "CardsWrapper")]
+    pub cards: Vec<UCard>
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
@@ -223,14 +235,14 @@ mod tests {
 
     #[test]
     fn parse_octgn_set_works() {
-        assert_eq!(parse_octgn_set(default()).cards.card[0].properties[2].name, "Type");
+        assert_eq!(parse_octgn_set(default()).cards[0].properties[2].name, "Type");
     }
 
 
     #[test]
     fn hero_card_from_ucard() {
         let cards = &parse_octgn_set(default()).cards;
-        let hero_card = HeroCard::from_ucard(&cards.card[0]).unwrap();
+        let hero_card = HeroCard::from_ucard(&cards[0]).unwrap();
         assert_eq!(hero_card.card_number, 81);
         assert_eq!(hero_card.quantity, 1);
         assert_eq!(hero_card.card_type, CardType::Hero);
@@ -247,15 +259,15 @@ mod tests {
     #[test]
     fn hero_card_from_ucard_without_willpower() {
         let cards = &parse_octgn_set(default()).cards;
-        let mut hero_card_without_willpower = cards.card[0].clone();
+        let mut hero_card_without_willpower = cards[0].clone();
         hero_card_without_willpower.properties.remove(0);
-        assert!(HeroCard::from_ucard(&cards.card[1]).is_err());
+        assert!(HeroCard::from_ucard(&cards[1]).is_err());
     }
 
     #[test]
     fn card_set_from_uset() {
         let card_set = &parse_octgn_set(default());
-        assert_eq!(card_set.cards.card[0].properties[0].value, "81");
+        assert_eq!(card_set.cards[0].properties[0].value, "81");
     }
 
     // TDOO: REIMPLEMENT THIS FUNCTIONALITY
@@ -264,6 +276,6 @@ mod tests {
     //    let mut card_set1 = parse_octgn_set(default());
     //    let mut card_set2 = parse_octgn_set(default());
     //    card_set1.append(&mut card_set2);
-    //    assert_eq!(card_set1.cards.card.len(), 6);
+    //    assert_eq!(card_set1.cards.len(), 6);
     //}
 }
