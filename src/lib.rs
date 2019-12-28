@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashMap;
 use std::str::FromStr;
 use serde_xml_rs::{from_str};
 use bitvec::prelude::*;
@@ -20,8 +19,8 @@ pub struct UCard {
 }
 
 #[derive(Debug, Deserialize)]
-struct UCards {
-    card: Vec<UCard>,
+pub struct UCards {
+    pub card: Vec<UCard>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
@@ -50,16 +49,16 @@ impl Default for CardType {
 }
 
 #[derive(Debug, Deserialize)]
-struct USet {
-    version: String,
+pub struct USet {
+    pub version: String,
     #[serde(rename = "gameVersion", default)]
-    game_version: String,
+    pub game_version: String,
     #[serde(rename = "gameId", default)]
-    game_id: String,
-    id: String,
-    name: String,
+    pub game_id: String,
+    pub id: String,
+    pub name: String,
 
-    cards: UCards,
+    pub cards: UCards,
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
@@ -104,121 +103,10 @@ pub struct HeroCard {
     pub set: String,
 }
 
-pub struct CardSet {
-    pub cards: Vec<UCard>,
-}
-
-impl CardSet {
-    pub fn empty() -> Self {
-        CardSet{cards:vec!{}}
-    }
-
-    pub fn append(&mut self, other: &mut Self) {
-        self.cards.append(&mut other.cards);
-    }
-
-    fn from_uset(set: &USet) -> Self {
-        let mut cards = Vec::with_capacity(set.cards.card.len());
-        for card in &set.cards.card {
-            let mut new_card = card.clone();
-            new_card.properties.push(UProperty{name: String::from("Set"), value: set.name.clone()});
-            cards.push(new_card);
-        }
-        CardSet{cards}
-    }
-
-    pub fn select_by_name(&self) -> HashMap<String, BitVec> {
-        return self._select_by_name()
-    }
-
-    pub fn select_by_name_le(&self) -> HashMap<String, BitVec<LittleEndian, u8>> {
-        return self._select_by_name();
-    }
-
-    fn _select_by_name<C>(&self) -> HashMap<String, BitVec<C, u8>> where C : Cursor {
-        let mut v : HashMap<String, BitVec<C, _>> = HashMap::new();
-        let cards_number = self.cards.len();
-        for (n, card) in self.cards.iter().enumerate() {
-            for name in card.name.split(' ') {
-                let name = name.to_lowercase().replace("ú", "u");
-                let name = name.to_lowercase().replace("’", "'");
-                let name = name.to_lowercase().replace("í", "i");
-                let name = name.to_lowercase().replace("û", "u");
-                let name = name.to_lowercase().replace("î", "i");
-                let name = name.to_lowercase().replace("ó", "o");
-                let name = name.to_lowercase().replace("é", "e");
-                let name = name.to_lowercase().replace("â", "a");
-                let name = name.to_lowercase().replace("“", "");
-                let name = name.to_lowercase().replace("ë", "e");
-                let name = name.to_lowercase().replace("”", "");
-                let name = name.to_lowercase().replace("á", "a");
-                let name = name.to_lowercase().replace("\u{a0}", "eo");
-                let name = name.to_lowercase().replace("ä", "a");
-                let name = name.to_lowercase().replace("\u{301}", "");
-                let name = name.to_lowercase().replace("ö", "o");
-                let name = name.to_lowercase().replace("\u{302}", "u");
-                let i = name.len();
-                for j in 0..i {
-                    let card_name_start = name[0..i-j].to_string();
-                    v.entry(card_name_start)
-                        .and_modify(|v| v.set(n, true))
-                        .or_insert_with(|| {let mut m = bitvec![C, u8; 0; cards_number]; m.set(n, true); m});
-                }
-            }
-        }
-        v
-    }
-
-    pub fn select_by_type(&self) -> HashMap<CardType, BitVec> {
-        return self._select_by_type()
-    }
-
-    pub fn select_by_type_le(&self) -> HashMap<CardType, BitVec<LittleEndian, u8>> {
-        return self._select_by_type();
-    }
-
-    fn _select_by_type<C>(&self) -> HashMap<CardType, BitVec<C, u8>> where C : Cursor {
-        let mut v : HashMap<CardType, BitVec<C, u8>> = HashMap::new();
-        let cards_number = self.cards.len();
-        for (n, card) in self.cards.iter().enumerate() {
-            for property in &card.properties {
-                if property.name == "Type" {
-                    if property.value.as_str() != "Internal" {
-                        let card_type = match property.value.as_str() {
-                            "Hero" => CardType::Hero,
-                            "Attachment" => CardType::Attachment,
-                            "Side Quest" => CardType::SideQuest,
-                            "Event" => CardType::Event,
-                            "Ally" => CardType::Ally,
-                            "Objective" => CardType::Objective,
-                            "Enemy" => CardType::Enemy,
-                            "Location" => CardType::Location,
-                            "Treachery" => CardType::Treachery,
-                            "Quest" => CardType::Quest,
-                            "Rules" => CardType::Rules,
-                            "Nightmare" => CardType::Nightmare,
-                            "Treasure" => CardType::Treasure,
-                            "Campaign" => CardType::Campaign,
-                            "Objective Ally" => CardType::ObjectiveAlly,
-                            "Ship-Enemy" => CardType::ShipEnemy,
-                            "Contract" => CardType::Contract,
-                            val => panic!{"{} is card type not known", val},
-                        };
-                        v.entry(card_type)
-                            .and_modify(|v| v.set(n, true))
-                            .or_insert_with(|| {let mut m = bitvec![C, u8; 0; cards_number]; m.set(n, true); m});
-                        }
-                }
-            }
-        }
-        v
-    }
-}
-
 impl HeroCard {
     fn from_ucard(card: &UCard) -> Result<Self, String> {
         let mut hero_card = HeroCard::default();
-        let mut setted = bitvec![0; 12];
+        let mut setted = bitvec![0; 11];
         for property in &card.properties {
             match property.name.as_str() {
                 "Card Number" => {
@@ -269,25 +157,25 @@ impl HeroCard {
                     setted.set(10, true);
                     hero_card.text = String::from(&property.value)
                 },
-                "Set" => {
-                    setted.set(11, true);
-                    hero_card.set = String::from(&property.value)
-                },
+                // TODO: REIMPLEMENT THIS
+                // "Set" => {
+                //     setted.set(11, true);
+                //     hero_card.set = String::from(&property.value)
+                // },
                 x => panic!("Cannot parse {} for hero card.", x)
             }
         }
         if setted.all() {
             Ok(hero_card)
         } else {
-            Err(String::from(format!("Error in card hero parsing")))
+            Err(String::from(format!("Error {:?} in card hero parsing", setted)))
         }
     }
 }
 
-pub fn parse_octgn_set(s: &str) -> CardSet {
+pub fn parse_octgn_set(s: &str) -> USet {
     let i = s.find('\n').unwrap();
-    let uset = from_str(s.get(i..).unwrap()).unwrap();
-    CardSet::from_uset(&uset)
+    from_str(s.get(i..).unwrap()).unwrap()
 }
 
 #[cfg(test)]
@@ -335,55 +223,14 @@ mod tests {
 
     #[test]
     fn parse_octgn_set_works() {
-        assert_eq!(parse_octgn_set(default()).cards[0].properties[2].name, "Type");
+        assert_eq!(parse_octgn_set(default()).cards.card[0].properties[2].name, "Type");
     }
 
-    #[test]
-    fn set_select_by_name_start_with_f() {
-        let cards = &parse_octgn_set(default());
-        let selectors = cards.select_by_name();
-        assert_eq!(selectors["f"], bitvec![1, 1, 0])
-    }
-
-    #[test]
-    fn set_select_by_name_start_with_r() {
-        let cards = &parse_octgn_set(default());
-        let selectors = cards.select_by_name();
-        assert_eq!(selectors["r"], bitvec![0, 0, 1])
-    }
-
-    #[test]
-    fn set_select_by_name_start_with_fe() {
-        let cards = &parse_octgn_set(default());
-        let selectors = cards.select_by_name();
-        assert_eq!(selectors["fe"], bitvec![0, 1, 0])
-    }
-
-    #[test]
-    fn set_select_by_name_contains_wes() {
-        let cards = &parse_octgn_set(default());
-        let selectors = cards.select_by_name();
-        assert_eq!(selectors["wes"], bitvec![0, 0, 1])
-    }
-
-    #[test]
-    fn set_select_by_type_hero() {
-        let cards = &parse_octgn_set(default());
-        let selectors = cards.select_by_type();
-        assert_eq!(selectors[&CardType::Hero], bitvec![1, 0, 0])
-    }
-
-    #[test]
-    fn set_select_by_type_attachment() {
-        let cards = &parse_octgn_set(default());
-        let selectors = cards.select_by_type();
-        assert_eq!(selectors[&CardType::Attachment], bitvec![0, 1, 0])
-    }
 
     #[test]
     fn hero_card_from_ucard() {
         let cards = &parse_octgn_set(default()).cards;
-        let hero_card = HeroCard::from_ucard(&cards[0]).unwrap();
+        let hero_card = HeroCard::from_ucard(&cards.card[0]).unwrap();
         assert_eq!(hero_card.card_number, 81);
         assert_eq!(hero_card.quantity, 1);
         assert_eq!(hero_card.card_type, CardType::Hero);
@@ -400,22 +247,23 @@ mod tests {
     #[test]
     fn hero_card_from_ucard_without_willpower() {
         let cards = &parse_octgn_set(default()).cards;
-        let mut hero_card_without_willpower = cards[0].clone();
+        let mut hero_card_without_willpower = cards.card[0].clone();
         hero_card_without_willpower.properties.remove(0);
-        assert!(HeroCard::from_ucard(&cards[1]).is_err());
+        assert!(HeroCard::from_ucard(&cards.card[1]).is_err());
     }
 
     #[test]
     fn card_set_from_uset() {
         let card_set = &parse_octgn_set(default());
-        assert_eq!(card_set.cards[0].properties[11].value, "The Black Serpent");
+        assert_eq!(card_set.cards.card[0].properties[0].value, "81");
     }
 
-    #[test]
-    fn add_card_set() {
-        let mut card_set1 = parse_octgn_set(default());
-        let mut card_set2 = parse_octgn_set(default());
-        card_set1.append(&mut card_set2);
-        assert_eq!(card_set1.cards.len(), 6);
-    }
+    // TDOO: REIMPLEMENT THIS FUNCTIONALITY
+    //#[test]
+    //fn add_card_set() {
+    //    let mut card_set1 = parse_octgn_set(default());
+    //    let mut card_set2 = parse_octgn_set(default());
+    //    card_set1.append(&mut card_set2);
+    //    assert_eq!(card_set1.cards.card.len(), 6);
+    //}
 }
